@@ -1,21 +1,53 @@
-require("dotenv").config();
-const connectDB = require("./config/db");
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+const http = require('http');
+const app = require('./src/app');
+const connectDB = require('./src/config/db');
+const initSocketIO = require('./src/socket');
 
-async function start() {
-    if (!process.env.JWT_SECRET || Buffer.byteLength(process.env.JWT_SECRET) < 32)
-        throw new Error("JWT_SECRET phải có ít nhất 32 byte.");
+const PORT = process.env.PORT || 5000;
+
+const startServer = async () => {
+  try {
+    // 1. Kết nối Database
     await connectDB();
-    await require("./src/models/User").init();
-    require("./src/app").listen(process.env.PORT || 5000, () => console.log("PTITChat API đã sẵn sàng."));
-}
-start().catch((error) => {
-    console.error(error);
-    const servers = error.reason?.servers || error.cause?.servers;
-    if (servers) {
-        for (const [address, server] of servers) {
-            console.error(`MongoDB node ${address}:`);
-            console.dir(server.error, { depth: null });
-        }
-    }
+
+    // 2. Tạo HTTP server
+    const server = http.createServer(app);
+
+    // 3. Khởi tạo Socket.IO thời gian thực
+    const io = initSocketIO(server);
+    app.set('io', io);
+
+    // 4. Bắt đầu lắng nghe kết nối
+    server.listen(PORT, () => {
+      console.log(`===============================================`);
+      console.log(`🚀 PTITChat Server đang chạy tại cổng ${PORT}`);
+      console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`⚡ Socket.IO : Sẵn sàng đón kết nối`);
+      console.log(`🌐 Môi trường: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`===============================================`);
+    });
+
+    // Graceful shutdown
+    const gracefulShutdown = () => {
+      console.log('\nĐang dừng server an toàn...');
+      server.close(() => {
+        console.log('Server đã dừng.');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
+  } catch (error) {
+    console.error('Lỗi khởi động server:', error.message);
     process.exit(1);
-});
+  }
+};
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { startServer };
