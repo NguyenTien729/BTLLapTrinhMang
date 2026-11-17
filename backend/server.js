@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const http = require('http');
 const app = require('./src/app');
 const connectDB = require('./src/config/db');
@@ -7,42 +8,46 @@ const initSocketIO = require('./src/socket');
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  // Connect to Database
-  await connectDB();
+  try {
+    // 1. Kết nối Database
+    await connectDB();
 
-  // Create HTTP server
-  const server = http.createServer(app);
+    // 2. Tạo HTTP server
+    const server = http.createServer(app);
 
-  // Initialize Socket.IO
-  const io = initSocketIO(server);
-  app.set('io', io);
+    // 3. Khởi tạo Socket.IO thời gian thực
+    const io = initSocketIO(server);
+    app.set('io', io);
 
-  // Start listening
-  server.listen(PORT, () => {
-    console.log(`===============================================`);
-    console.log(` PTITChat Backend Server running on port ${PORT}`);
-    console.log(` Health check: http://localhost:${PORT}/api/health`);
-    console.log(` Environment:  ${process.env.NODE_ENV || 'development'}`);
-    console.log(`===============================================`);
-  });
-
-  // Graceful shutdown
-  const gracefulShutdown = () => {
-    console.log('\nShutting down server gracefully...');
-    server.close(() => {
-      console.log('Server stopped.');
-      process.exit(0);
+    // 4. Bắt đầu lắng nghe kết nối
+    server.listen(PORT, () => {
+      console.log(`===============================================`);
+      console.log(`🚀 PTITChat Server đang chạy tại cổng ${PORT}`);
+      console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`⚡ Socket.IO : Sẵn sàng đón kết nối`);
+      console.log(`🌐 Môi trường: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`===============================================`);
     });
-  };
 
-  process.on('SIGINT', gracefulShutdown);
-  process.on('SIGTERM', gracefulShutdown);
+    // Graceful shutdown
+    const gracefulShutdown = () => {
+      console.log('\nĐang dừng server an toàn...');
+      server.close(() => {
+        console.log('Server đã dừng.');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
+  } catch (error) {
+    console.error('Lỗi khởi động server:', error.message);
+    process.exit(1);
+  }
 };
 
-// Start the application if executed directly
 if (require.main === module) {
   startServer();
 }
 
 module.exports = { startServer };
-

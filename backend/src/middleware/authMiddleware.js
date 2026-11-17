@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 
 /**
- * Middleware to authenticate requests via JWT
+ * Middleware xác thực JWT token
  */
 const protect = async (req, res, next) => {
   let token;
@@ -16,14 +17,23 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(
         token,
-        process.env.JWT_SECRET || 'ptitchat_secret_key_2026'
+        process.env.JWT_SECRET || 'ptitchat_super_secret_jwt_key_2026_ptit_telecom'
       );
 
-      const user = await User.findById(decoded.id || decoded.userId).select('-password');
+      const userId = decoded.id || decoded.sub || decoded.userId;
+
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token không hợp lệ.'
+        });
+      }
+
+      const user = await User.findById(userId).select('-password -passwordHash');
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: 'Tài khoản không tồn tại hoặc đã bị xóa'
+          message: 'Tài khoản không tồn tại hoặc đã bị xóa.'
         });
       }
 
@@ -32,7 +42,7 @@ const protect = async (req, res, next) => {
     } catch (error) {
       return res.status(401).json({
         success: false,
-        message: 'Token không hợp lệ hoặc đã hết hạn',
+        message: 'Token không hợp lệ hoặc đã hết hạn.',
         error: error.message
       });
     }
@@ -41,13 +51,13 @@ const protect = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: 'Không tìm thấy token xác thực, vui lòng đăng nhập'
+      message: 'Không tìm thấy token xác thực, vui lòng đăng nhập.'
     });
   }
 };
 
 /**
- * Helper / middleware to verify user is a member of the specified conversation
+ * Middleware kiểm tra quyền thành viên cuộc trò chuyện
  */
 const requireConversationMember = async (req, res, next) => {
   try {
@@ -71,10 +81,7 @@ const requireConversationMember = async (req, res, next) => {
       });
     }
 
-    const isMember = conversation.members.some(
-      (m) => m.toString() === req.user._id.toString()
-    );
-
+    const isMember = conversation.hasMember(req.user._id);
     if (!isMember) {
       return res.status(403).json({
         success: false,
@@ -82,7 +89,6 @@ const requireConversationMember = async (req, res, next) => {
       });
     }
 
-    // Attach conversation to req for reuse in controller
     req.conversation = conversation;
     next();
   } catch (error) {
@@ -94,8 +100,8 @@ const requireConversationMember = async (req, res, next) => {
   }
 };
 
-module.exports = {
-  protect,
-  requireConversationMember
-};
+// Cho phép cả require('...').protect và require('...') trực tiếp
+protect.protect = protect;
+protect.requireConversationMember = requireConversationMember;
 
+module.exports = protect;

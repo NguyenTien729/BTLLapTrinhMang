@@ -1,61 +1,34 @@
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const socketAuth = require('./authSocket');
+const { registerPresence } = require('./presenceSocket');
 const initChatSocket = require('./chatSocket');
-const { initPresenceSocket } = require('./presenceSocket');
 
+// Khởi tạo Socket.IO và gắn các module xử lý
 const initSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
-      methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+      origin: process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5173',
       credentials: true
     }
   });
 
-  // Socket Authentication Middleware
-  io.use(async (socket, next) => {
-    try {
-      const token =
-        socket.handshake.auth?.token ||
-        socket.handshake.headers?.authorization?.replace(/^Bearer\s+/, '') ||
-        socket.handshake.query?.token;
-
-      if (!token) {
-        // Allow unauthenticated connection or reject:
-        // We reject if strict auth is required
-        return next(new Error('Authentication error: Missing token'));
-      }
-
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'ptitchat_secret_key_2026'
-      );
-
-      const user = await User.findById(decoded.id || decoded.userId).select(
-        '_id username displayName avatar email'
-      );
-
-      if (!user) {
-        return next(new Error('Authentication error: User not found'));
-      }
-
-      socket.user = user;
-      next();
-    } catch (err) {
-      return next(new Error(`Authentication error: ${err.message}`));
-    }
-  });
+  // Bước 1: kiểm tra token trước khi cho kết nối
+  io.use(socketAuth);
 
   io.on('connection', (socket) => {
-    console.log(`[Socket] User connected: ${socket.user?.username} (${socket.id})`);
+    console.log(`[Socket] ${socket.user?.username || socket.userId} kết nối (${socket.id})`);
 
-    // Attach modules
+    // Bước 2: vào room riêng của user để nhận thông báo ở mọi tab
+    socket.join('user:' + socket.userId);
+
+    // Bước 3: theo dõi online/offline
+    registerPresence(io, socket);
+
+    // Bước 4: các sự kiện chat
     initChatSocket(io, socket);
-    initPresenceSocket(io, socket);
 
-    socket.on('disconnect', (reason) => {
-      console.log(`[Socket] Client disconnected: ${socket.id} (${reason})`);
+    socket.on('disconnect', () => {
+      console.log(`[Socket] ${socket.user?.username || socket.userId} ngắt kết nối (${socket.id})`);
     });
   });
 
@@ -63,4 +36,3 @@ const initSocketIO = (server) => {
 };
 
 module.exports = initSocketIO;
-

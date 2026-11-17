@@ -1,153 +1,155 @@
+const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 const messageService = require('../services/messageService');
+const { notifyNewMessage } = require('./notificationSocket');
 
 /**
- * Socket.IO Chat Event Handler
- * Reuses messageService.createMessage so REST API and Socket.IO share the exact same logic
- * and deduplicate messages via clientTempId.
+ * Gắn các sự kiện chat cho một socket đã xác thực.
+ * Tích hợp chặt chẽ với messageService để lưu tin nhắn dùng chung cho REST API và Socket.IO,
+ * chống tạo trùng lặp với clientTempId.
  */
 const initChatSocket = (io, socket) => {
-  const user = socket.user;
+  const userId = socket.userId || socket.user?._id?.toString();
 
-  // Join a conversation room
-  socket.on('join_conversation', (conversationId) => {
-    if (conversationId) {
-      socket.join(conversationId.toString());
-      console.log(`[Socket] User ${user?._id || socket.id} joined conversation: ${conversationId}`);
+  // Helper lấy cuộc trò chuyện và kiểm tra quyền thành viên
+  const getConversation = async (conversationId) => {
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) throw new Error('Cuộc trò chuyện không tồn tại');
+    if (!conversation.hasMember(userId)) {
+      throw new Error('Bạn không phải thành viên của cuộc trò chuyện này');
     }
-  });
+    return conversation;
+  };
 
-  // Leave a conversation room
-  socket.on('leave_conversation', (conversationId) => {
-    if (conversationId) {
-      socket.leave(conversationId.toString());
-      console.log(`[Socket] User ${user?._id || socket.id} left conversation: ${conversationId}`);
-    }
-  });
-
-  // Handle send message
-  socket.on('send_message', async (data, callback) => {
+  // 1. Vào phòng chat
+  const handleJoin = async (data, callback) => {
     try {
-      const {
-        conversationId,
-        text,
-        type,
-        attachments,
-        replyTo,
-        clientTempId
-      } = data || {};
-
-      const senderId = user?._id || data?.senderId;
-
-      if (!senderId) {
-        if (typeof callback === 'function') {
-          return callback({
-            success: false,
-            message: 'Không tìm thấy thông tin người gửi'
-          });
-        }
-        return;
-      }
-
-      // Call shared messageService to create or get deduplicated message
-      const savedMessage = await messageService.createMessage({
-        conversationId,
-        senderId,
-        text,
-        type,
-        attachments,
-        replyTo,
-        clientTempId
-      });
-
-      // Broadcast to all sockets in the conversation room
-      io.to(conversationId.toString()).emit('receive_message', savedMessage);
-      io.to(conversationId.toString()).emit('new_message', savedMessage);
-
+      const convId = data?.conversationId || data;
+      const conversation = await getConversation(convId);
+      socket.join(conversation._id.toString());
       if (typeof callback === 'function') {
-        callback({
-          success: true,
-          data: savedMessage
-        });
+        callback({ success: true, conversationId: conversation._id.toString() });
       }
     } catch (error) {
-      console.error('[Socket] send_message error:', error.message);
-      if (typeof callback === 'function') {
-        callback({
-          success: false,
-          message: error.message
-        });
-      }
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
     }
-  });
+  };
+  socket.on('conversation:join', handleJoin);
+  socket.on('join_conversation', handleJoin);
 
-  // Handle edit message
-  socket.on('edit_message', async (data, callback) => {
+  // 2. Rời phòng chat
+  const handleLeave = (data) => {
+    const convId = data?.conversationId || data;
+    if (convId) socket.leave(convId.toString());
+  };
+  socket.on('conversation:leave', handleLeave);
+  socket.on('leave_conversation', handleLeave);
+
+  // 3. Gửi tin nhắn mới
+  const handleSend = async (data, callback) => {
     try {
-      const { messageId, text, content } = data || {};
-      const newText = text || content;
-      const userId = user?._id || data?.userId;
+      const conversation = await getConversation(data?.conversationId);
 
-      const updated = await messageService.editMessage({
-        messageId,
+      const message = await messageService.createMessage({
+        conversationId: conversation._id,
+        senderId: userId,
+        text: data?.text,
+        type: data?.type,
+        attachments: data?.attachments,
+        replyTo: data?.replyTo,
+        clientTempId: data?.clientTempId
+      });
+
+      // Phát cho các client khác trong phòng
+      socket.to(conversation._id.toString()).emit('message:new', message);
+      socket.to(conversation._id.toString()).emit('receive_message', message);
+
+      // Thông báo cho thành viên khác không mở tab hội thoại này
+      notifyNewMessage(io, conversation, message, socket.id);
+
+      if (typeof callback === 'function') callback({ success: true, data: message });
+    } catch (error) {
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
+    }
+  };
+  socket.on('message:send', handleSend);
+  socket.on('send_message', handleSend);
+
+  // 4. Sửa tin nhắn
+  const handleEdit = async (data, callback) => {
+    try {
+      const message = await messageService.editMessage({
+        messageId: data?.messageId || data?.id,
         userId,
-        newText
+        newText: data?.text || data?.content
       });
-
-      io.to(updated.conversationId.toString()).emit('message_edited', updated);
-
-      if (typeof callback === 'function') {
-        callback({ success: true, data: updated });
-      }
+      io.to(message.conversationId.toString()).emit('message:edited', message);
+      io.to(message.conversationId.toString()).emit('message_edited', message);
+      if (typeof callback === 'function') callback({ success: true, data: message });
     } catch (error) {
-      if (typeof callback === 'function') {
-        callback({ success: false, message: error.message });
-      }
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
     }
-  });
+  };
+  socket.on('message:edit', handleEdit);
+  socket.on('edit_message', handleEdit);
 
-  // Handle recall message
-  socket.on('recall_message', async (data, callback) => {
+  // 5. Thu hồi tin nhắn
+  const handleRevoke = async (data, callback) => {
     try {
-      const { messageId } = data || {};
-      const userId = user?._id || data?.userId;
-
-      const recalled = await messageService.recallMessage({
-        messageId,
+      const message = await messageService.recallMessage({
+        messageId: data?.messageId || data?.id,
         userId
       });
-
-      io.to(recalled.conversationId.toString()).emit('message_recalled', recalled);
-
-      if (typeof callback === 'function') {
-        callback({ success: true, data: recalled });
-      }
+      io.to(message.conversationId.toString()).emit('message:revoked', message);
+      io.to(message.conversationId.toString()).emit('message_recalled', message);
+      if (typeof callback === 'function') callback({ success: true, data: message });
     } catch (error) {
-      if (typeof callback === 'function') {
-        callback({ success: false, message: error.message });
-      }
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
+    }
+  };
+  socket.on('message:revoke', handleRevoke);
+  socket.on('recall_message', handleRevoke);
+
+  // 6. Đánh dấu đã xem
+  socket.on('message:seen', async (data, callback) => {
+    try {
+      const conversation = await getConversation(data?.conversationId);
+      const seenAt = new Date();
+
+      await Message.updateMany(
+        { conversationId: conversation._id, isRecall: false },
+        { $addToSet: { readBy: { user: userId, readAt: seenAt } } }
+      );
+
+      socket.to(conversation._id.toString()).emit('message:seen', {
+        conversationId: conversation._id.toString(),
+        userId,
+        seenAt
+      });
+
+      if (typeof callback === 'function') callback({ success: true });
+    } catch (error) {
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
     }
   });
 
-  // Typing indicators
-  socket.on('typing', ({ conversationId }) => {
-    if (conversationId) {
-      socket.to(conversationId.toString()).emit('user_typing', {
-        conversationId,
-        userId: user?._id,
-        displayName: user?.displayName || user?.username
-      });
-    }
+  // 7. Đang nhập / dừng nhập
+  socket.on('typing:start', (data) => {
+    if (!data?.conversationId) return;
+    socket.to(data.conversationId.toString()).emit('typing:start', {
+      conversationId: data.conversationId,
+      userId,
+      displayName: socket.user?.displayName || socket.user?.username
+    });
   });
 
-  socket.on('stop_typing', ({ conversationId }) => {
-    if (conversationId) {
-      socket.to(conversationId.toString()).emit('user_stop_typing', {
-        conversationId,
-        userId: user?._id
-      });
-    }
+  socket.on('typing:stop', (data) => {
+    if (!data?.conversationId) return;
+    socket.to(data.conversationId.toString()).emit('typing:stop', {
+      conversationId: data.conversationId,
+      userId
+    });
   });
 };
 
 module.exports = initChatSocket;
-

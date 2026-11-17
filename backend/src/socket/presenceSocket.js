@@ -1,56 +1,46 @@
 const User = require('../models/User');
 
-const onlineUsers = new Map(); // userId -> Set of socketIds
+// userId -> Set các socketId đang mở
+// Dùng Map để biết ai đang online. Một người mở nhiều tab thì có nhiều socketId.
+const onlineUsers = new Map();
 
-const initPresenceSocket = (io, socket) => {
-  const user = socket.user;
-  if (!user) return;
+// Thêm socket vào danh sách online
+const registerPresence = (io, socket) => {
+  const userId = socket.userId;
+  if (!userId) return;
 
-  const userId = user._id.toString();
-
-  // Track socket connection
   if (!onlineUsers.has(userId)) {
     onlineUsers.set(userId, new Set());
+    // Chỉ lần đầu mở kết nối mới báo online cho mọi người
+    io.emit('user:online', { userId });
   }
   onlineUsers.get(userId).add(socket.id);
 
-  // Mark user online in DB
-  User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }).catch(
-    (err) => console.error('[Presence] Error marking online:', err.message)
-  );
+  // Lưu trạng thái vào database để lần sau đăng nhập còn biết lastSeen
+  User.findByIdAndUpdate(userId, { isOnline: true }).catch(() => {});
 
-  // Broadcast user online status
-  io.emit('user_online', {
-    userId,
-    isOnline: true
-  });
+  // Gửi danh sách đang online cho người vừa kết nối
+  socket.emit('presence:list', { onlineUserIds: [...onlineUsers.keys()] });
 
-  socket.on('disconnect', async () => {
-    const userSockets = onlineUsers.get(userId);
-    if (userSockets) {
-      userSockets.delete(socket.id);
-      if (userSockets.size === 0) {
-        onlineUsers.delete(userId);
-        const lastSeen = new Date();
-        await User.findByIdAndUpdate(userId, {
-          isOnline: false,
-          lastSeen
-        }).catch((err) =>
-          console.error('[Presence] Error marking offline:', err.message)
-        );
+  socket.on('disconnect', () => {
+    const sockets = onlineUsers.get(userId);
+    if (!sockets) return;
 
-        io.emit('user_offline', {
-          userId,
-          isOnline: false,
-          lastSeen
-        });
-      }
-    }
+    sockets.delete(socket.id);
+    // Còn tab khác thì chưa offline
+    if (sockets.size > 0) return;
+
+    onlineUsers.delete(userId);
+    const lastSeen = new Date();
+    User.findByIdAndUpdate(userId, { isOnline: false, lastSeen }).catch(() => {});
+    io.emit('user:offline', { userId, lastSeen });
   });
 };
 
-module.exports = {
-  initPresenceSocket,
-  onlineUsers
-};
+// Kiểm tra một user có đang online không
+const isUserOnline = (userId) => onlineUsers.has(userId?.toString());
 
+// Xoá hết khi test
+const resetPresence = () => onlineUsers.clear();
+
+module.exports = { registerPresence, isUserOnline, resetPresence, onlineUsers };

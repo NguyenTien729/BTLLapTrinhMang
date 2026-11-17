@@ -9,8 +9,8 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      minlength: [3, 'Tên người dùng phải có ít nhất 3 ký tự'],
-      maxlength: [30, 'Tên người dùng tối đa 30 ký tự']
+      minlength: [2, 'Tên người dùng phải có ít nhất 2 ký tự'],
+      maxlength: [50, 'Tên người dùng tối đa 50 ký tự']
     },
     email: {
       type: String,
@@ -18,12 +18,16 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, 'Email không hợp lệ']
+      maxlength: [254, 'Email tối đa 254 ký tự'],
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Email không hợp lệ']
     },
     password: {
       type: String,
-      required: [true, 'Vui lòng nhập mật khẩu'],
       minlength: [6, 'Mật khẩu phải có ít nhất 6 ký tự'],
+      select: false
+    },
+    passwordHash: {
+      type: String,
       select: false
     },
     displayName: {
@@ -35,7 +39,13 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      default: ''
+      default: '',
+      maxlength: [2048, 'Avatar URL quá dài']
+    },
+    bio: {
+      type: String,
+      default: '',
+      maxlength: [500, 'Tiểu sử tối đa 500 ký tự']
     },
     isOnline: {
       type: Boolean,
@@ -53,27 +63,33 @@ const userSchema = new mongoose.Schema(
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
+  if (this.isModified('password') && this.password) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    this.passwordHash = this.password;
   }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  if (!this.displayName) {
+    this.displayName = this.username;
+  }
   next();
 });
 
 // Compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  const hash = this.password || this.passwordHash;
+  if (!hash) return false;
+  return await bcrypt.compare(enteredPassword, hash);
 };
 
-// Omit password when converting to JSON
+// Omit password and passwordHash when converting to JSON
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.passwordHash;
+  delete obj.__v;
   return obj;
 };
 
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
-

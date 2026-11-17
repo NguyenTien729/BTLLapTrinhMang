@@ -1,5 +1,9 @@
 node_modules/
 backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+ptitchat/node_modules/
+ptitchat/dist/
 backend/uploads/*
 !backend/uploads/.gitkeep
 data/
@@ -7,4 +11,5 @@ data/
 backend/.env
 .DS_Store
 Thumbs.db
+
 

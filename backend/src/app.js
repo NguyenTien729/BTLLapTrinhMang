@@ -12,9 +12,10 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const app = express();
 
 // Middlewares
+app.disable('x-powered-by');
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || '*',
+    origin: process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5173',
     credentials: true
   })
 );
@@ -51,9 +52,18 @@ app.use((req, res, next) => {
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
-  console.error('[Error Middleware]', err);
+  if (err.code === 11000) {
+    return res.status(409).json({ success: false, message: 'Dữ liệu đã tồn tại trong hệ thống.' });
+  }
+  if (err.name === 'ValidationError') {
+    const msg = Object.values(err.errors).map((item) => item.message).join(' ');
+    return res.status(400).json({ success: false, message: msg });
+  }
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, message: 'JSON không hợp lệ.' });
+  }
 
-  const statusCode = err.statusCode || res.statusCode >= 400 ? res.statusCode : 500;
+  const statusCode = err.statusCode || (res.statusCode >= 400 ? res.statusCode : 500);
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Lỗi hệ thống máy chủ',
@@ -62,4 +72,3 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
-
