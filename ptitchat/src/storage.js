@@ -41,7 +41,13 @@ export async function hashPassword(password, salt) {
 }
 export const load = (key, fallback) => {
   try {
-    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === undefined) return fallback;
+    try {
+      return JSON.parse(raw) ?? fallback;
+    } catch {
+      return raw || fallback;
+    }
   } catch {
     return fallback;
   }

@@ -23,7 +23,7 @@ function FileAttachment({file,onOpen}){return <button className="file-card" onCl
 function StoredImage({file,onClick,className=''}){const [src,setSrc]=useState(file?.data||'');useEffect(()=>{let url,cancel=false;if(file?.id&&!file.data)readFile(file.id).then(blob=>{if(blob&&!cancel){url=URL.createObjectURL(blob);setSrc(url);}}).catch(()=>{});return()=>{cancel=true;if(url)URL.revokeObjectURL(url);};},[file?.id,file?.data]);return src?<img className={className} src={src} alt={file.name||'Ảnh đã chia sẻ'} onClick={()=>onClick?.(src)}/>:<span className="image-placeholder">Không tải được ảnh</span>;}
 
 export default function App(){
- const [theme,setTheme]=useState(()=>load('ptit-theme','light'));
+ const [theme,setTheme]=useState(()=>{try{const s=localStorage.getItem('ptit-theme');if(s==='dark'||s==='"dark"')return 'dark';if(s==='light'||s==='"light"')return 'light';return load('ptit-theme','light');}catch{return 'light';}});
  const [session,setSession]=useState(()=>load('ptit-session',null));
  const [data,setData]=useState(()=>load('ptit-state',initialState()));
  const [selected,setSelected]=useState('project'),[tab,setTab]=useState('all'),[query,setQuery]=useState(''),[draft,setDraft]=useState(''),[modal,setModal]=useState(null),[right,setRight]=useState(()=>typeof window!=='undefined'&&window.innerWidth>1050),[mobileChat,setMobileChat]=useState(false),[nav,setNav]=useState('messages'),[toast,setToast]=useState(''),[chatSearch,setChatSearch]=useState(false),[messageQuery,setMessageQuery]=useState(''),[emoji,setEmoji]=useState(false),[pending,setPending]=useState(null),[sending,setSending]=useState(false),[connected,setConnected]=useState(false),[typing,setTyping]=useState([]),[muted,setMuted]=useState(()=>load('ptit-muted',[]));
@@ -37,6 +37,7 @@ export default function App(){
   if(typeof document!=='undefined'){
    document.documentElement.classList.toggle('dark',theme==='dark');
    document.body.classList.toggle('dark',theme==='dark');
+   document.documentElement.setAttribute('data-theme',theme);
   }
  },[theme]);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3800);return()=>clearTimeout(t);},[toast]);

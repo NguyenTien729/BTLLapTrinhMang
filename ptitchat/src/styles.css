@@ -111,3 +111,23 @@
 .dark .attachment-preview small{color:#9aa0a6}
 .dark .typing-indicator{color:#9aa0a6}
 .dark .toast{background:#1e202a;border-color:#323544;color:#f3f4f6;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.dark .auth-page{background:#121318;color:#f3f4f6}
+.dark .auth-main{background:#121318;color:#f3f4f6}
+.dark .auth-form-wrap h2{color:#f3f4f6}
+.dark .auth-form-wrap>p{color:#9aa0a6}
+.dark .auth-form-wrap form label{color:#e5e7eb}
+.dark .auth-tabs{border-bottom-color:#282a35}
+.dark .auth-tabs button{color:#9aa0a6}
+.dark .auth-tabs button.selected{color:#f87171}
+.dark .auth-tabs button.selected:after{background:#f87171}
+.dark .input-wrap{background:#1a1c24;border-color:#323544;color:#f3f4f6}
+.dark .input-wrap input{color:#f3f4f6}
+.dark .demo-button{background:#1e202a;border-color:#323544;color:#f87171}
+.dark .demo-button:hover{background:#282b39}
+.dark .auth-divider{color:#6b7280}
+.dark .auth-divider:before,.dark .auth-divider:after{background:#282a35}
+.dark .auth-top{color:#9aa0a6}
+.dark .auth-options .checkbox-label{color:#9aa0a6}
+.dark .secure{color:#9aa0a6}
+.dark .auth-form-wrap .demo-note{color:#6b7280}
+.dark .auth-bottom{color:#6b7280}
