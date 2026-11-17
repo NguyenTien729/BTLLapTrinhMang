@@ -13,6 +13,7 @@ const registerPresence = (io, socket) => {
     onlineUsers.set(userId, new Set());
     // Chỉ lần đầu mở kết nối mới báo online cho mọi người
     io.emit('user:online', { userId });
+    io.emit('presence', { id: userId, userId, online: true });
   }
   onlineUsers.get(userId).add(socket.id);
 
@@ -34,6 +35,7 @@ const registerPresence = (io, socket) => {
     const lastSeen = new Date();
     User.findByIdAndUpdate(userId, { isOnline: false, lastSeen }).catch(() => {});
     io.emit('user:offline', { userId, lastSeen });
+    io.emit('presence', { id: userId, userId, online: false, lastSeen });
   });
 };
 

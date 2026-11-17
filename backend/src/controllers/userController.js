@@ -119,8 +119,10 @@ const searchUsers = async (req, res) => {
  */
 const getUsers = async (req, res) => {
   try {
-    const { search, q } = req.query;
-    const query = { _id: { $ne: req.user._id } };
+    const { search, q, all, includeSelf } = req.query;
+    const query = (all === 'true' || all === '1' || includeSelf === 'true' || includeSelf === '1')
+      ? {}
+      : { _id: { $ne: req.user._id } };
 
     const keyword = search || q;
     if (keyword && keyword.trim()) {
