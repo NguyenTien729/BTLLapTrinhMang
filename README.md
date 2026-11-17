@@ -10,10 +10,10 @@
 
 | STT | Họ và tên | Mã SV | Vai trò | Nhiệm vụ đảm nhiệm chính |
 | :---: | :--- | :---: | :---: | :--- |
-| **1** | **Ngô Bùi Tùng** *(Trưởng nhóm)* | B21DCCN... | Fullstack / Team Lead | • Thiết kế CSDL (Mongoose Schemas: Conversation, Message, Soft Recall, Attachments)<br>• Xây dựng hệ thống RESTful API hội thoại, tin nhắn, tìm kiếm<br>• Tầng dịch vụ `messageService` dùng chung chống trùng tin (`clientTempId`)<br>• Module Upload đa phương tiện (Multer)<br>• Tích hợp hệ thống, đồng bộ MongoDB Atlas và viết Test Suite tự động API |
-| **2** | **Nguyễn Mạnh Tiến** | B21DCCN... | Backend / Auth | • Module Xác thực & Quản lý người dùng (Đăng ký, Đăng nhập, JWT, Bcrypt)<br>• Schema `User`, `authMiddleware` phân quyền và bảo vệ route<br>• API quản lý thông tin cá nhân và tìm kiếm người dùng |
-| **3** | **Trần Đăng Ninh** | B21DCCN... | Backend / Realtime | • Thiết lập hạ tầng Realtime Socket.IO, xác thực JWT handshake<br>• Xử lý sự kiện tin nhắn thời gian thực (1-1, Nhóm, Sửa, Thu hồi, Typing indicator)<br>• Quản lý trạng thái hiện diện (Presence: Online / Offline)<br>• Bộ test case kiểm thử Socket.IO |
-| **4** | **Nguyễn Hoàng Sơn** | B21DCCN... | Frontend UI/UX | • Xây dựng giao diện ứng dụng React + Vite chuẩn nhận diện PTIT<br>• Tích hợp Chế độ Sáng / Tối (Light / Dark Mode) lưu trữ bền vững (`localStorage`)<br>• Bảng biểu tượng cảm xúc (Emoji Picker) đối xứng, cân đối<br>• Giao diện Đăng nhập 1-Click với 4 tài khoản nhóm mẫu<br>• Khung thông tin hội thoại mở rộng 350px phong cách Zalo Desktop |
+| **1** | **Ngô Bùi Tùng** | B23DCCN900 | Fullstack / Team Lead | • Thiết kế CSDL (Mongoose Schemas: Conversation, Message, Soft Recall, Attachments)<br>• Xây dựng hệ thống RESTful API hội thoại, tin nhắn, tìm kiếm<br>• Tầng dịch vụ `messageService` dùng chung chống trùng tin (`clientTempId`)<br>• Module Upload đa phương tiện (Multer)<br>• Tích hợp hệ thống, đồng bộ MongoDB Atlas và viết Test Suite tự động API |
+| **2** | **Nguyễn Mạnh Tiến** | B23DCCN820 | Backend / Auth | • Module Xác thực & Quản lý người dùng (Đăng ký, Đăng nhập, JWT, Bcrypt)<br>• Schema `User`, `authMiddleware` phân quyền và bảo vệ route<br>• API quản lý thông tin cá nhân và tìm kiếm người dùng |
+| **3** | **Trần Đăng Ninh** | B23DCCN634 | Backend / Realtime | • Thiết lập hạ tầng Realtime Socket.IO, xác thực JWT handshake<br>• Xử lý sự kiện tin nhắn thời gian thực (1-1, Nhóm, Sửa, Thu hồi, Typing indicator)<br>• Quản lý trạng thái hiện diện (Presence: Online / Offline)<br>• Bộ test case kiểm thử Socket.IO |
+| **4** | **Nguyễn Hoàng Sơn** | B23DCCN721 | Frontend UI/UX | • Xây dựng giao diện ứng dụng React + Vite chuẩn nhận diện PTIT<br>• Tích hợp Chế độ Sáng / Tối (Light / Dark Mode) lưu trữ bền vững (`localStorage`)<br>• Bảng biểu tượng cảm xúc (Emoji Picker) đối xứng, cân đối<br>• Giao diện Đăng nhập 1-Click với 4 tài khoản nhóm mẫu<br>• Khung thông tin hội thoại mở rộng 350px phong cách Zalo Desktop |
 
 ---
 
