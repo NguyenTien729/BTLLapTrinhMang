@@ -11,8 +11,8 @@
 
 
 /* ===================== THEME TOGGLE & DARK MODE ===================== */
-.theme-switcher{display:inline-flex;background:#f0f1f4;padding:3px;border-radius:9px;gap:3px;border:1px solid #e4e6eb}
-.theme-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:550;color:#6b7280;cursor:pointer;border:none;background:transparent;transition:all .15s}
+.theme-switcher{flex:0 0 auto !important;display:inline-flex;align-items:center;background:#f0f1f4;padding:3px;border-radius:9px;gap:2px;border:1px solid #e4e6eb}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:550;color:#6b7280;cursor:pointer;border:none;background:transparent;transition:all .15s;white-space:nowrap}
 .theme-btn.active{background:#fff;color:#b7213c;box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:650}
 .theme-btn svg{color:inherit}
 
