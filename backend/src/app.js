@@ -8,6 +8,8 @@ const userRoutes = require('./routes/userRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const { updateMe } = require('./controllers/userController');
+const { protect } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -36,6 +38,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount API routes
+app.patch('/api/me', protect, updateMe);
+app.get('/api/me', protect, (req, res) => res.json({ success: true, user: req.user, data: req.user }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/conversations', conversationRoutes);

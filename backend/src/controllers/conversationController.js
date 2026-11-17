@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 const User = require('../models/User');
 
 /**
@@ -21,9 +22,42 @@ const getConversations = async (req, res) => {
         populate: { path: 'sender', select: '_id username displayName avatar' }
       });
 
-    // Mask recalled last messages
+    // Populate recent messages for each conversation so frontend gets full history
+    const convIds = conversations.map((c) => c._id);
+    const allMessages = await Message.find({ conversationId: { $in: convIds } })
+      .sort({ createdAt: 1 })
+      .limit(300);
+
+    const msgsByConv = {};
+    for (const m of allMessages) {
+      const cid = m.conversationId.toString();
+      if (!msgsByConv[cid]) msgsByConv[cid] = [];
+      msgsByConv[cid].push({
+        id: m._id.toString(),
+        _id: m._id,
+        sender: (m.sender?._id || m.sender).toString(),
+        text: m.isRecall ? 'Tin nhắn đã bị thu hồi' : (m.text || ''),
+        time: m.createdAt,
+        createdAt: m.createdAt,
+        file: m.attachments?.[0]
+          ? {
+              name: m.attachments[0].originalName || m.attachments[0].fileName,
+              url: m.attachments[0].url
+            }
+          : undefined
+      });
+    }
+
+    // Mask recalled last messages and format fields for both REST and UI
     const formatted = conversations.map((conv) => {
       const convObj = conv.toObject();
+      const cid = convObj._id.toString();
+      convObj.id = cid;
+      convObj.members = convObj.members.map((m) => (m._id ? m._id.toString() : m.toString()));
+      convObj.messages = msgsByConv[cid] || [];
+      convObj.unread = 0;
+      convObj.color = '#b52740';
+
       if (convObj.lastMessage && convObj.lastMessage.isRecall) {
         convObj.lastMessage.text = 'Tin nhắn đã bị thu hồi';
         convObj.lastMessage.attachments = [];
@@ -47,13 +81,23 @@ const getConversations = async (req, res) => {
 
 /**
  * @route   POST /api/conversations
- * @desc    Create or get existing 1-1 conversation
+ * @desc    Create or get existing 1-1 conversation (or group if type === 'group')
  * @access  Private
  */
 const createOrGetDirectConversation = async (req, res) => {
   try {
+    if (req.body.type === 'group') {
+      return createGroupConversation(req, res);
+    }
+
     const userId = req.user._id;
-    const recipientId = req.body.recipientId || req.body.memberId || req.body.userId;
+    const recipientId =
+      req.body.recipientId ||
+      req.body.memberId ||
+      req.body.userId ||
+      (Array.isArray(req.body.members)
+        ? req.body.members.find((m) => m.toString() !== userId.toString())
+        : req.body.members);
 
     if (!recipientId) {
       return res.status(400).json({

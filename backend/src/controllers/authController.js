@@ -79,13 +79,19 @@ const register = async (req, res) => {
     await user.save();
 
     const token = issueToken(user);
+    const userObj = user.toObject ? user.toObject() : { ...user };
+    userObj.id = user._id.toString();
+    userObj.name = user.displayName || user.username;
+    userObj.online = true;
+    delete userObj.password;
+    delete userObj.passwordHash;
 
     res.status(201).json({
       success: true,
       message: 'Đăng ký tài khoản thành công',
       token,
-      user,
-      data: { user, token }
+      user: userObj,
+      data: { user: userObj, token }
     });
   } catch (error) {
     res.status(500).json({
@@ -136,13 +142,19 @@ const login = async (req, res) => {
     await user.save();
 
     const token = issueToken(user);
+    const userObj = user.toObject ? user.toObject() : { ...user };
+    userObj.id = user._id.toString();
+    userObj.name = user.displayName || user.username;
+    userObj.online = true;
+    delete userObj.password;
+    delete userObj.passwordHash;
 
     res.status(200).json({
       success: true,
       message: 'Đăng nhập thành công',
       token,
-      user,
-      data: { user, token }
+      user: userObj,
+      data: { user: userObj, token }
     });
   } catch (error) {
     res.status(500).json({

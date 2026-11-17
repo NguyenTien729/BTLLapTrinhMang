@@ -133,11 +133,24 @@ const getUsers = async (req, res) => {
       .select('_id username displayName email avatar bio isOnline lastSeen')
       .limit(50);
 
+    const formattedUsers = users.map((u) => {
+      const uObj = u.toObject ? u.toObject() : { ...u };
+      return {
+        ...uObj,
+        id: u._id.toString(),
+        _id: u._id,
+        name: u.displayName || u.username,
+        displayName: u.displayName || u.username,
+        online: !!u.isOnline,
+        color: '#b52740'
+      };
+    });
+
     res.status(200).json({
       success: true,
-      count: users.length,
-      users,
-      data: users
+      count: formattedUsers.length,
+      users: formattedUsers,
+      data: formattedUsers
     });
   } catch (error) {
     res.status(500).json({
