@@ -1,237 +1,248 @@
-# PTITChat - Ứng Dụng Nhắn Tin Trực Tuyến Thời Gian Thực
+# PTITChat — Ứng Dụng Nhắn Tin Thời Gian Thực (Realtime Chat Application)
 
-Dự án đề tài ứng dụng nhắn tin thời gian thực **PTITChat** xây dựng bằng **Node.js, Express, MongoDB, Socket.IO, Multer, JWT** và **React**.
+> **Báo cáo Đồ án môn học: Lập trình mạng**  
+> **Học viện Công nghệ Bưu chính Viễn thông (PTIT)**  
+> **Hệ thống Chat Full-Stack:** Node.js (Express), MongoDB Atlas, Socket.IO, Multer, JWT, React (Vite).
 
 ---
 
-## 1. Cấu Trúc Thư Mục Backend
+## 👥 Danh Sách Thành Viên & Phân Công Nhiệm Vụ
+
+| STT | Họ và tên | Mã SV | Vai trò | Nhiệm vụ đảm nhiệm chính |
+| :---: | :--- | :---: | :---: | :--- |
+| **1** | **Ngô Bùi Tùng** *(Trưởng nhóm)* | B21DCCN... | Fullstack / Team Lead | • Thiết kế CSDL (Mongoose Schemas: Conversation, Message, Soft Recall, Attachments)<br>• Xây dựng hệ thống RESTful API hội thoại, tin nhắn, tìm kiếm<br>• Tầng dịch vụ `messageService` dùng chung chống trùng tin (`clientTempId`)<br>• Module Upload đa phương tiện (Multer)<br>• Tích hợp hệ thống, đồng bộ MongoDB Atlas và viết Test Suite tự động API |
+| **2** | **Nguyễn Mạnh Tiến** | B21DCCN... | Backend / Auth | • Module Xác thực & Quản lý người dùng (Đăng ký, Đăng nhập, JWT, Bcrypt)<br>• Schema `User`, `authMiddleware` phân quyền và bảo vệ route<br>• API quản lý thông tin cá nhân và tìm kiếm người dùng |
+| **3** | **Trần Đăng Ninh** | B21DCCN... | Backend / Realtime | • Thiết lập hạ tầng Realtime Socket.IO, xác thực JWT handshake<br>• Xử lý sự kiện tin nhắn thời gian thực (1-1, Nhóm, Sửa, Thu hồi, Typing indicator)<br>• Quản lý trạng thái hiện diện (Presence: Online / Offline)<br>• Bộ test case kiểm thử Socket.IO |
+| **4** | **Nguyễn Hoàng Sơn** | B21DCCN... | Frontend UI/UX | • Xây dựng giao diện ứng dụng React + Vite chuẩn nhận diện PTIT<br>• Tích hợp Chế độ Sáng / Tối (Light / Dark Mode) lưu trữ bền vững (`localStorage`)<br>• Bảng biểu tượng cảm xúc (Emoji Picker) đối xứng, cân đối<br>• Giao diện Đăng nhập 1-Click với 4 tài khoản nhóm mẫu<br>• Khung thông tin hội thoại mở rộng 350px phong cách Zalo Desktop |
+
+---
+
+## 🚀 Tính Năng Nổi Bật
+
+1. **Xác thực an toàn (Authentication)**: Đăng ký, đăng nhập bảo mật bằng mật khẩu băm `bcrypt` và cấp phát JSON Web Token (JWT HS256).
+2. **Nhắn tin thời gian thực (Socket.IO)**: Nhắn tin 1-1 và chat nhóm không có độ trễ, tự động cập nhật danh sách hội thoại và số tin nhắn chưa đọc.
+3. **Trạng thái hiện diện (Presence Tracking)**: Hiển thị chấm xanh trực tuyến và số lượng thành viên đang online tức thì.
+4. **Cơ chế chống trùng lặp tin nhắn (`clientTempId`)**: Đảm bảo tin nhắn gửi qua Socket.IO và REST API không bao giờ bị nhân đôi dữ liệu.
+5. **Thu hồi mềm (Soft Delete/Recall)**: Người gửi có thể thu hồi tin nhắn; nội dung sẽ tự động ẩn trên giao diện tất cả người nhận trong khi lịch sử vẫn được bảo toàn trong CSDL phục vụ quản trị.
+6. **Chỉnh sửa tin nhắn**: Cập nhật nội dung tin nhắn và phát tín hiệu `message:edited` tới tất cả thành viên trong phòng.
+7. **Đính kèm Tệp & Hình ảnh (Multer)**: Hỗ trợ gửi ảnh, tài liệu PDF, Office, file nén tối đa 25MB với tính năng xem trước trực tiếp.
+8. **Tìm kiếm hội thoại & tin nhắn**: Tra cứu nội dung tin nhắn theo từ khóa nhanh chóng trong từng cuộc hội thoại.
+9. **Giao diện người dùng hiện đại**:
+   - Chế độ Sáng / Tối (Light & Dark mode) tự động ghi nhớ, không giật màn hình khi tải lại (`F5`).
+   - Bảng emoji đối xứng, căn giữa tâm ô vuông với hiệu ứng phóng to hover đẹp mắt.
+   - Hỗ trợ nút đăng nhập 1 chạm (1-Click Login) cho 4 thành viên nhóm.
+
+---
+
+## 📂 Cấu Trúc Thư Mục Dự Án
 
 ```
-backend/
-├── src/
-│   ├── config/
-│   │   └── db.js                        # Kết nối MongoDB (Mongoose)
-│   ├── models/
-│   │   ├── User.js                      # Schema người dùng & mã hóa bcrypt
-│   │   ├── Conversation.js              # Schema hội thoại 1-1 và Nhóm
-│   │   └── Message.js                   # Schema tin nhắn, đính kèm, reply, thu hồi mềm
-│   ├── controllers/
-│   │   ├── authController.js            # Đăng ký, đăng nhập JWT, lấy thông tin me
-│   │   ├── userController.js            # Danh sách & tìm kiếm người dùng
-│   │   ├── conversationController.js    # Quản lý hội thoại 1-1 và nhóm
-│   │   └── messageController.js         # Quản lý tin nhắn
-│   ├── routes/
-│   │   ├── authRoutes.js                # /api/auth
-│   │   ├── userRoutes.js                # /api/users
-│   │   ├── conversationRoutes.js        # /api/conversations
-│   │   ├── messageRoutes.js             # /api/messages
-│   │   └── uploadRoutes.js              # /api/uploads
-│   ├── middleware/
-│   │   ├── authMiddleware.js            # Kiểm tra JWT & quyền thành viên hội thoại
-│   │   └── uploadMiddleware.js          # Multer upload tệp/ảnh & kiểm tra loại/kích thước
-│   ├── services/
-│   │   └── messageService.js            # HÀM LƯU TIN NHẮN DÙNG CHUNG (REST API & Socket.IO)
-│   ├── socket/
-│   │   ├── index.js                     # Khởi tạo Socket.IO & xác thực JWT socket
-│   │   ├── chatSocket.js                # Lắng nghe & broadcast tin nhắn, sửa, thu hồi, typing
-│   │   └── presenceSocket.js            # Trạng thái Online / Offline thời gian thực
+BTLLapTrinhMang/
+├── backend/                             # Máy chủ Node.js + Express + Socket.IO
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── db.js                    # Kết nối MongoDB Atlas (Mongoose)
+│   │   ├── controllers/
+│   │   │   ├── authController.js        # Đăng ký, đăng nhập JWT, hồ sơ me
+│   │   │   ├── conversationController.js# Quản lý cuộc trò chuyện 1-1 và nhóm
+│   │   │   ├── messageController.js     # Lấy lịch sử, gửi, sửa, thu hồi tin nhắn
+│   │   │   └── userController.js        # Tìm kiếm và danh sách người dùng
+│   │   ├── middleware/
+│   │   │   ├── authMiddleware.js        # Xác thực Bearer JWT & quyền hội thoại
+│   │   │   └── uploadMiddleware.js      # Multer xử lý tải ảnh & tài liệu
+│   │   ├── models/
+│   │   │   ├── Conversation.js          # Mongoose Schema Hội thoại
+│   │   │   ├── Message.js               # Mongoose Schema Tin nhắn
+│   │   │   └── User.js                  # Mongoose Schema Người dùng & bcrypt
+│   │   ├── routes/
+│   │   │   ├── authRoutes.js            # /api/auth
+│   │   │   ├── conversationRoutes.js    # /api/conversations
+│   │   │   ├── messageRoutes.js         # /api/messages
+│   │   │   ├── uploadRoutes.js          # /api/uploads
+│   │   │   └── userRoutes.js            # /api/users
+│   │   ├── seeds/
+│   │   │   └── seedData.js              # Script khởi tạo 4 tài khoản và dữ liệu mẫu
+│   │   ├── services/
+│   │   │   └── messageService.js        # Dịch vụ lưu tin nhắn dùng chung (Idempotency)
+│   │   ├── socket/
+│   │   │   ├── authSocket.js            # Middleware xác thực JWT cho Socket.IO
+│   │   │   ├── chatSocket.js            # Sự kiện tin nhắn, gõ phím, sửa, thu hồi
+│   │   │   ├── presenceSocket.js        # Trạng thái Online / Offline
+│   │   │   └── index.js                 # Điểm kết nối Socket.IO
+│   │   ├── tests/
+│   │   │   ├── api.test.js              # 26 test cases kiểm thử REST API
+│   │   │   └── socket.test.js           # 9 test cases kiểm thử Socket.IO
+│   │   └── app.js                       # Cấu hình Express, CORS, Static uploads
+│   ├── uploads/                         # Thư mục lưu trữ tệp đính kèm người dùng
+│   ├── server.js                        # File khởi động Server HTTP & WebSocket
+│   ├── .env.example                     # Biến môi trường mẫu
+│   └── package.json
+│
+├── ptitchat/                            # Ứng dụng Frontend React + Vite
+│   ├── src/
+│   │   ├── App.jsx                      # Component chính (Chat, Nav, Modal, Themes)
+│   │   ├── styles.css                   # Toàn bộ CSS (Responsive, Dark/Light mode)
+│   │   ├── storage.js                   # API Client, Socket listener, Local storage
+│   │   ├── data.js                      # Helpers dữ liệu & tiện ích thời gian
+│   │   └── main.jsx                     # Điểm gắn React DOM
 │   ├── tests/
-│   │   └── api.test.js                  # Bộ test tự động 26 test case kiểm tra toàn diện API
-│   └── app.js                           # Express app & cấu hình middleware
-├── uploads/                             # Thư mục lưu trữ tệp & ảnh đã tải lên
-├── server.js                            # HTTP Server & lắng nghe cổng
-├── .env.example                         # Biến môi trường mẫu
-├── .env                                 # Biến môi trường cục bộ
-└── package.json
+│   │   ├── app.test.js                  # Test giao diện và chức năng phía client
+│   │   └── server.test.js               # Test tích hợp Client - Server
+│   ├── index.html                       # HTML gốc với Anti-flicker Theme Script
+│   ├── vite.config.js                   # Cấu hình Vite & Reverse Proxy (/api, /socket.io)
+│   └── package.json
+│
+├── PTITChat.postman_collection.json     # Bộ Postman Collection kiểm thử đầy đủ API
+├── docker-compose.yml                   # Cấu hình khởi chạy nhanh MongoDB / App bằng Docker
+└── README.md                            # Tài liệu hướng dẫn sử dụng và báo cáo đồ án
 ```
 
 ---
 
-## 2. Thiết Kế Database (Mongoose Schema)
+## 🛠 Hướng Dẫn Cài Đặt & Chạy Ứng Dụng
 
-### 2.1. Conversation Schema (`backend/src/models/Conversation.js`)
-- `type`: `'direct'` (1-1) hoặc `'group'` (Nhóm).
-- `name`: Tên nhóm trò chuyện.
-- `avatar`: URL ảnh đại diện nhóm.
-- `members`: Mảng các `ObjectId` tham chiếu đến `User` (được index để truy vấn nhanh).
-- `admin`: `ObjectId` người tạo / quản trị viên nhóm.
-- `lastMessage`: `ObjectId` tham chiếu `Message` mới nhất.
-- `lastMessageAt`: Thời điểm gửi tin nhắn cuối cùng (index giảm dần để sắp xếp hộp thoại).
-- Phương thức `hasMember(userId)` và static `findDirectConversation(user1, user2)`.
-
-### 2.2. Message Schema (`backend/src/models/Message.js`)
-- `conversationId`: `ObjectId` tham chiếu `Conversation` (indexed).
-- `sender`: `ObjectId` tham chiếu `User` người gửi (indexed).
-- `type`: `'text'` | `'image'` | `'file'`.
-- `text`: Nội dung văn bản của tin nhắn.
-- `attachments`: Mảng metadata tệp đính kèm:
-  - `url`: Đường dẫn tải file (ví dụ: `/uploads/file-123.pdf`).
-  - `fileName`: Tên tệp đã lưu.
-  - `originalName`: Tên tệp gốc.
-  - `fileType`: `'image'` hoặc `'file'`.
-  - `fileSize`: Dung lượng tính bằng bytes.
-  - `mimeType`: Chuỗi MIME (`image/png`, `application/pdf`, ...).
-- `replyTo`: `ObjectId` tham chiếu tin nhắn được phản hồi (populate text, sender).
-- `isEdited`: `Boolean` đánh dấu tin nhắn đã chỉnh sửa.
-- `editedAt`: Thời gian chỉnh sửa.
-- `isRecall`: `Boolean` **thu hồi mềm** (soft delete). Khi `true`, nội dung và tệp đính kèm được tự động ẩn khỏi client (`text = 'Tin nhắn đã bị thu hồi'`), bản ghi vẫn được lưu trữ trong CSDL.
-- `recalledAt`: Thời điểm thu hồi.
-- `clientTempId`: ID tạm từ phía client gửi lên để **chống trùng lặp tin nhắn giữa Socket.IO và REST API**.
-- `readBy`: Danh sách người dùng đã đọc tin nhắn và thời điểm đọc.
+### 1. Yêu Cầu Môi Trường
+- **Node.js**: Phiên bản 20.x hoặc 22.x LTS trở lên.
+- **npm**: Phiên bản 10.x trở lên.
+- **MongoDB**: Đã có sẵn MongoDB Atlas (theo chuỗi kết nối nhóm đã cấu hình) hoặc MongoDB Server cài tại máy (`localhost:27017`).
 
 ---
 
-## 3. Hàm Lưu Tin Nhắn Dùng Chung (`messageService.js`)
+### 2. Cài Đặt & Khởi Chạy Backend
 
-Để đảm bảo tính nhất quán và **không bao giờ bị trùng lặp bản ghi** giữa REST API và Socket.IO:
+Mở cửa sổ dòng lệnh thứ nhất:
 
-```javascript
-const messageService = require('../services/messageService');
-
-// Gọi khi nhận sự kiện từ Socket.IO hoặc từ REST API:
-const savedMessage = await messageService.createMessage({
-  conversationId,
-  senderId,
-  text,
-  type,
-  attachments,
-  replyTo,
-  clientTempId // Nếu gửi lại cùng clientTempId, hệ thống trả về tin nhắn đã tạo, không tạo mới
-});
-```
-
-**Cơ chế hoạt động:**
-1. **Kiểm tra Deduplication**: Nếu client gửi `clientTempId`, service kiểm tra xem tin nhắn đã tồn tại chưa. Nếu có, lập tức trả về tin nhắn đó.
-2. **Kiểm tra quyền thành viên**: Người gửi bắt buộc phải nằm trong mảng `members` của `Conversation`. Nếu không, bắn lỗi 403 Forbidden.
-3. **Kiểm tra tin nhắn phản hồi (`replyTo`)**: Xác thực tin nhắn phản hồi phải thuộc về cùng hội thoại.
-4. **Cập nhật hội thoại**: Tự động cập nhật `lastMessage` và `lastMessageAt` cho hội thoại.
-5. **Populate dữ liệu**: Tự động populate đầy đủ thông tin `sender` (avatar, displayName) và `replyTo`.
-
----
-
-## 4. Danh Sách Các RESTful API Chi Tiết
-
-Tất cả các API yêu cầu gắn header: `Authorization: Bearer <JWT_TOKEN>`.
-
-### 4.1. Nhóm API Hội Thoại (`/api/conversations`)
-
-| Method | Endpoint | Mô tả |
-| :--- | :--- | :--- |
-| **GET** | `/api/conversations` | Lấy danh sách tất cả hội thoại của người dùng, sắp xếp theo tin nhắn mới nhất |
-| **POST** | `/api/conversations` | Tạo hoặc lấy hội thoại 1-1 (Nếu đã có hội thoại giữa 2 người thì trả về cái cũ) |
-| **POST** | `/api/conversations/group` | Tạo nhóm trò chuyện mới (tối thiểu 2 thành viên, người tạo là admin) |
-| **PATCH** | `/api/conversations/:id` | Đổi tên nhóm, cập nhật avatar, thêm thành viên, xóa thành viên, rời nhóm |
-
-#### Ví dụ Body:
-- **POST `/api/conversations`**:
-  ```json
-  { "recipientId": "65b21d5a7a8d8e9f12345678" }
-  ```
-- **POST `/api/conversations/group`**:
-  ```json
-  {
-    "name": "Nhóm Đồ Án PTITChat",
-    "members": ["65b21d5a7a8d8e9f12345678", "65b21d5a7a8d8e9f87654321"],
-    "avatar": ""
-  }
-  ```
-- **PATCH `/api/conversations/:id`**:
-  ```json
-  {
-    "name": "Tên nhóm mới",
-    "addMembers": ["userId3"],
-    "removeMembers": ["userId4"],
-    "leave": false
-  }
-  ```
-
----
-
-### 4.2. Nhóm API Tin Nhắn (`/api/messages`)
-
-| Method | Endpoint | Mô tả |
-| :--- | :--- | :--- |
-| **GET** | `/api/messages/search?q=&conversationId=` | Tìm kiếm tin nhắn theo từ khóa (trong 1 hội thoại hoặc tất cả) |
-| **GET** | `/api/messages/:conversationId?page=1&limit=20` | Lấy lịch sử tin nhắn phân trang (kiểm tra quyền thành viên) |
-| **POST** | `/api/messages` | Gửi tin nhắn mới (văn bản, tệp đính kèm, replyTo, clientTempId) |
-| **PATCH** | `/api/messages/:id` | Chỉnh sửa tin nhắn của chính mình (chặn sửa tin nhắn người khác/tin đã thu hồi) |
-| **DELETE** | `/api/messages/:id` | Thu hồi mềm tin nhắn (đánh dấu `isRecall = true`, ẩn nội dung, không xóa trong DB) |
-
-#### Ví dụ Body:
-- **POST `/api/messages`**:
-  ```json
-  {
-    "conversationId": "65b21d5a...",
-    "text": "Chào bạn, đây là slide báo cáo",
-    "type": "file",
-    "attachments": [
-      {
-        "url": "/uploads/bao-cao.pdf",
-        "fileName": "bao-cao-123.pdf",
-        "originalName": "bao-cao.pdf",
-        "fileType": "file",
-        "fileSize": 204800,
-        "mimeType": "application/pdf"
-      }
-    ],
-    "replyTo": "65b21d99...",
-    "clientTempId": "temp-uuid-001"
-  }
-  ```
-- **PATCH `/api/messages/:id`**:
-  ```json
-  { "text": "Nội dung tin nhắn đã được cập nhật" }
-  ```
-
----
-
-### 4.3. API Tải Lên Tệp & Ảnh (`/api/uploads`)
-
-| Method | Endpoint | Content-Type | Mô tả |
-| :--- | :--- | :--- | :--- |
-| **POST** | `/api/uploads` | `multipart/form-data` | Tải lên 1 hoặc nhiều tệp/ảnh bằng Multer |
-
-- **Giới hạn kích thước**: Tối đa 25MB / tệp.
-- **Loại tệp hỗ trợ**:
-  - Ảnh: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`.
-  - Tài liệu & lưu trữ: `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.ppt`, `.pptx`, `.txt`, `.zip`, `.rar`, `.7z`.
-- **Response**: Trả về đường dẫn truy cập tĩnh (`/uploads/tên_file.ext`), mimeType, kích thước, và loại (`image` hoặc `file`).
-
----
-
-## 5. Hướng Dẫn Cài Đặt & Chạy Thử
-
-### 5.1. Khởi chạy MongoDB
-Có thể sử dụng Docker Compose có sẵn:
 ```bash
-docker compose up -d
-```
-Hoặc sử dụng MongoDB Server đã cài trên máy tại `mongodb://localhost:27017/ptitchat`.
-
-### 5.2. Cài đặt Dependencies & Chạy Server
-```bash
+# 1. Đi vào thư mục backend
 cd backend
+
+# 2. Cài đặt các gói phụ thuộc
 npm install
+
+# 3. Tạo file cấu hình môi trường từ mẫu
+cp .env.example .env
+# Trên Windows PowerShell:
+# Copy-Item .env.example .env
+
+# 4. Khởi chạy server ở chế độ phát triển
 npm run dev
 ```
 
-Server sẽ khởi động tại `http://localhost:5000`.
+Server sẽ khởi chạy tại: **`http://localhost:5000`**  
+*(CSDL MongoDB Atlas đã tự động kết nối và đồng bộ các tài khoản của nhóm)*.
 
-### 5.3. Chạy Toàn Bộ Test Suite Tự Động
+---
+
+### 3. Cài Đặt & Khởi Chạy Frontend (PTITChat)
+
+Mở cửa sổ dòng lệnh thứ hai:
+
 ```bash
-cd backend
-npm test
-```
-Bộ test bao gồm 26 test case kiểm tra toàn bộ luồng nghiệp vụ:
-- Đăng ký & sinh JWT
-- Tạo hội thoại 1-1 & nhóm
-- Chống tạo trùng 1-1
-- Thêm/xóa thành viên, đổi tên nhóm
-- Phân quyền (chặn người ngoài đọc/sửa/gửi tin)
-- Gửi tin nhắn text, đính kèm metadata file, reply tin nhắn
-- Chống trùng lặp tin nhắn (`clientTempId`)
-- Chỉnh sửa tin nhắn
-- Thu hồi mềm tin nhắn và ẩn nội dung
-- Tìm kiếm tin nhắn
-- Upload tệp bằng Multer và kiểm tra định dạng/kích thước
+# 1. Đi vào thư mục ptitchat
+cd ptitchat
 
+# 2. Cài đặt thư viện giao diện
+npm install
+
+# 3. Chạy giao diện phát triển Vite
+npm run dev
+```
+
+Mở trình duyệt truy cập: **`http://localhost:5173`**
+
+---
+
+### 4. Tài Khoản Thử Nghiệm Mẫu (1-Click Login)
+Tại màn hình đăng nhập, bạn có thể bấm trực tiếp vào các nút tài khoản đã seed sẵn:
+
+| Tên người dùng | Username | Mật khẩu | Vai trò trong nhóm |
+| :--- | :---: | :---: | :--- |
+| **Ngô Bùi Tùng** | `ngotung05` | `password123` | Trưởng nhóm |
+| **Nguyễn Mạnh Tiến** | `nguyentien05` | `password123` | Thành viên |
+| **Nguyễn Hoàng Sơn** | `hoangson05` | `password123` | Thành viên |
+| **Trần Đăng Ninh** | `tranninh05` | `password123` | Thành viên |
+
+---
+
+## 🧪 Kiểm Thử Tự Động (Automated Testing)
+
+Toàn bộ hệ sinh thái dự án đã được bao phủ bởi các bộ kiểm thử tự động toàn diện:
+
+### 1. Kiểm thử Backend (35/35 Test Cases PASS)
+Bao gồm 26 test REST API (`api.test.js`) và 9 test Socket.IO (`socket.test.js`):
+```bash
+npm test --prefix backend
+```
+- Xác thực đăng ký, đăng nhập, bảo mật JWT.
+- Phân quyền hội thoại (chặn người ngoài truy cập/gửi tin nhắn).
+- Chống tạo trùng lặp hội thoại 1-1.
+- Chống trùng lặp tin nhắn (`clientTempId`).
+- Thu hồi mềm tin nhắn và ẩn nội dung trên API.
+- Tải tệp lên bằng Multer và chặn tệp vượt dung lượng/sai định dạng.
+- Broadcast tin nhắn và thông báo thời gian thực qua phòng Socket.IO.
+
+### 2. Kiểm thử Frontend (2/2 Suites PASS)
+```bash
+npm test --prefix ptitchat
+```
+- Kiểm tra toàn diện UI: đăng nhập lỗi, chế độ demo, gửi tin nhắn, tạo nhóm, cập nhật hồ sơ cá nhân.
+- Kiểm tra tích hợp REST Authentication, tải tệp đính kèm và nhận dữ liệu thời gian thực.
+
+---
+
+## 📖 Chi Tiết Danh Sách API (REST API Reference)
+
+Tất cả các API yêu cầu gửi kèm header:  
+`Authorization: Bearer <TOKEN_JWT>` *(ngoại trừ các endpoint đăng ký/đăng nhập)*.
+
+### 1. Nhóm Xác Thực & Người Dùng (`/api/auth` & `/api/users`)
+| Method | Endpoint | Chức năng |
+| :---: | :--- | :--- |
+| `POST` | `/api/auth/register` | Đăng ký tài khoản mới (`username`, `password`, `name`) |
+| `POST` | `/api/auth/login` | Đăng nhập hệ thống, trả về Token JWT và thông tin user |
+| `GET` | `/api/auth/me` | Lấy thông tin tài khoản đang đăng nhập |
+| `PATCH`| `/api/auth/me` | Cập nhật hồ sơ (Họ tên, email, bio, mã SV, avatar) |
+| `GET` | `/api/users` | Danh sách người dùng hệ thống (hỗ trợ tham số `?all=true`) |
+| `GET` | `/api/users/search?q=` | Tìm kiếm người dùng theo username hoặc tên hiển thị |
+
+### 2. Nhóm Hội Thoại (`/api/conversations`)
+| Method | Endpoint | Chức năng |
+| :---: | :--- | :--- |
+| `GET` | `/api/conversations` | Lấy toàn bộ danh sách cuộc trò chuyện của người dùng |
+| `POST` | `/api/conversations` | Tạo hoặc lấy hội thoại 1-1 (tự deduplicate nếu đã có) |
+| `POST` | `/api/conversations/group` | Tạo nhóm chat mới (`name`, `members`, `avatar`) |
+| `PATCH`| `/api/conversations/:id` | Sửa tên nhóm, thêm/xóa thành viên, rời khỏi nhóm |
+
+### 3. Nhóm Tin Nhắn (`/api/messages`)
+| Method | Endpoint | Chức năng |
+| :---: | :--- | :--- |
+| `GET` | `/api/messages/:conversationId` | Lấy lịch sử tin nhắn của cuộc trò chuyện (phân trang) |
+| `POST` | `/api/messages` | Gửi tin nhắn mới (hỗ trợ text, attachments, replyTo, clientTempId) |
+| `PATCH`| `/api/messages/:id` | Sửa nội dung tin nhắn đã gửi |
+| `DELETE`| `/api/messages/:id` | Thu hồi mềm tin nhắn (`isRecall: true`) |
+| `GET` | `/api/messages/search?q=` | Tìm kiếm tin nhắn theo từ khóa |
+
+### 4. Nhóm Tải Lên Đa Phương Tiện (`/api/uploads`)
+| Method | Endpoint | Định dạng | Chức năng |
+| :---: | :--- | :---: | :--- |
+| `POST` | `/api/uploads` | `multipart/form-data` | Tải lên hình ảnh / tài liệu (tối đa 25MB) |
+
+---
+
+## ⚡ Các Sự Kiện Socket.IO (Realtime Events)
+
+| Sự kiện | Chiều | Mô tả |
+| :--- | :---: | :--- |
+| `connection` | Client ⇄ Server | Xác thực JWT trong `socket.handshake.auth.token` |
+| `message` | Server → Client | Phát tin nhắn mới đến các thành viên trong hội thoại |
+| `typing` | Client ⇄ Server | Phát tín hiệu người dùng đang soạn tin nhắn |
+| `message:edited` | Server → Client | Cập nhật nội dung tin nhắn đã sửa tới phòng chat |
+| `message:recalled` | Server → Client | Thông báo thu hồi tin nhắn tới các người nhận |
+| `presence:list` | Server → Client | Gửi danh sách toàn bộ ID người dùng đang Online |
+| `user:online` | Server → Client | Báo hiệu có người dùng vừa kết nối trực tuyến |
+| `user:offline` | Server → Client | Báo hiệu người dùng vừa ngắt kết nối (kèm `lastSeen`) |
+
+---
+
+## 📜 Bản Quyền & Giấy Phép
+Dự án được xây dựng và phát triển phục vụ học tập và nghiên cứu trong khuôn khổ môn học **Lập trình mạng** tại **Học viện Công nghệ Bưu chính Viễn thông (PTIT)**.
