@@ -9,7 +9,7 @@ const seedDatabase = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI;
     console.log(`[Seeder] Đang kết nối tới MongoDB Atlas...`);
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, { dbName: 'ptitchat' });
     console.log('[Seeder] Kết nối MongoDB Atlas thành công!');
 
     // 1. Dọn dẹp dữ liệu cũ
@@ -26,7 +26,9 @@ const seedDatabase = async () => {
         email: 'ngotung05@ptit.edu.vn',
         password: 'password123',
         displayName: 'Ngô Bùi Tùng',
+        studentId: 'B23DCCN900',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ngotung05',
+        bio: 'Trưởng nhóm đồ án PTITChat - Đam mê lập trình hệ thống & mạng.',
         isOnline: true
       },
       {
@@ -34,7 +36,9 @@ const seedDatabase = async () => {
         email: 'nguyentien05@ptit.edu.vn',
         password: 'password123',
         displayName: 'Nguyễn Mạnh Tiến',
+        studentId: 'B23DCCN820',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=nguyentien05',
+        bio: 'Phụ trách Auth, User Management & Bảo mật JWT.',
         isOnline: true
       },
       {
@@ -42,7 +46,9 @@ const seedDatabase = async () => {
         email: 'hoangson05@ptit.edu.vn',
         password: 'password123',
         displayName: 'Nguyễn Hoàng Sơn',
+        studentId: 'B23DCCN721',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=hoangson05',
+        bio: 'Thiết kế giao diện UI/UX chuẩn nhận diện PTIT.',
         isOnline: false
       },
       {
@@ -50,7 +56,9 @@ const seedDatabase = async () => {
         email: 'tranninh05@ptit.edu.vn',
         password: 'password123',
         displayName: 'Trần Đăng Ninh',
+        studentId: 'B23DCCN634',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tranninh05',
+        bio: 'Phụ trách Socket.IO Realtime & Presence Tracking.',
         isOnline: false
       }
     ]);
@@ -71,6 +79,7 @@ const seedDatabase = async () => {
     const groupConv = await Conversation.create({
       type: 'group',
       name: 'Nhóm Đồ Án PTITChat',
+      description: 'Nhóm thảo luận đồ án môn Lập trình mạng - Học viện Công nghệ Bưu chính Viễn thông (PTIT)',
       avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=ptitchat2026',
       admin: tung._id,
       members: [tung._id, tien._id, son._id, ninh._id],

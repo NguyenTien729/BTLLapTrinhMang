@@ -8,6 +8,7 @@ const connectDB = async () => {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ptitchat';
     
     const conn = await mongoose.connect(mongoUri, {
+      dbName: 'ptitchat',
       autoIndex: true
     });
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Message = require('../models/Message');
 const messageService = require('../services/messageService');
 
 /**
@@ -209,11 +210,133 @@ const searchMessages = async (req, res) => {
   }
 };
 
+/**
+ * @route   PATCH /api/messages/:conversationId/seen
+ * @desc    Mark all messages in conversation as seen
+ * @access  Private
+ */
+const markMessagesSeen = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'conversationId không hợp lệ'
+      });
+    }
+
+    const userId = req.user._id;
+    const now = new Date();
+
+    await Message.updateMany(
+      {
+        conversationId,
+        sender: { $ne: userId },
+        'readBy.user': { $ne: userId }
+      },
+      {
+        $set: { status: 'seen' },
+        $push: { readBy: { user: userId, readAt: now } }
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Đã đánh dấu đã xem'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi cập nhật trạng thái đã xem'
+    });
+  }
+};
+
+/**
+ * @route   PATCH /api/messages/:id/react
+ * @desc    Toggle emoji reaction on message
+ * @access  Private
+ */
+const reactMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { emoji } = req.body || {};
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID tin nhắn không hợp lệ'
+      });
+    }
+
+    if (!emoji || typeof emoji !== 'string' || !emoji.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Emoji không được để trống'
+      });
+    }
+
+    const cleanEmoji = emoji.trim();
+    const msg = await Message.findById(id);
+    if (!msg) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tin nhắn không tồn tại'
+      });
+    }
+
+    if (!Array.isArray(msg.reactions)) {
+      msg.reactions = [];
+    }
+
+    const existingIndex = msg.reactions.findIndex(
+      (r) => r.user.toString() === userId.toString()
+    );
+
+    if (existingIndex > -1) {
+      if (msg.reactions[existingIndex].emoji === cleanEmoji) {
+        msg.reactions.splice(existingIndex, 1);
+      } else {
+        msg.reactions[existingIndex].emoji = cleanEmoji;
+      }
+    } else {
+      msg.reactions.push({ user: userId, emoji: cleanEmoji });
+    }
+
+    await msg.save();
+
+    const payload = {
+      messageId: msg._id.toString(),
+      conversationId: msg.conversationId.toString(),
+      reactions: msg.reactions
+    };
+
+    const io = req.app?.get('io');
+    if (io) {
+      io.to(msg.conversationId.toString()).emit('message:reaction', payload);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật cảm xúc thành công',
+      data: payload
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi cập nhật cảm xúc: ' + error.message
+    });
+  }
+};
+
 module.exports = {
   getMessages,
   sendMessage,
   editMessage,
   recallMessage,
-  searchMessages
+  markMessagesSeen,
+  searchMessages,
+  reactMessage
 };
 

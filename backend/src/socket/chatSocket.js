@@ -110,28 +110,69 @@ const initChatSocket = (io, socket) => {
   socket.on('message:revoke', handleRevoke);
   socket.on('recall_message', handleRevoke);
 
-  // 6. Đánh dấu đã xem
-  socket.on('message:seen', async (data, callback) => {
+  // 5.1. Đánh dấu đã nhận (Delivery ACK)
+  const handleDelivered = async (data) => {
     try {
-      const conversation = await getConversation(data?.conversationId);
+      const messageId = data?.messageId || data?.id;
+      const convId = data?.conversationId;
+      if (!messageId) return;
+
+      const now = new Date();
+      const updated = await Message.findByIdAndUpdate(
+        messageId,
+        {
+          $set: { status: 'delivered' },
+          $addToSet: { deliveredTo: { user: userId, deliveredAt: now } }
+        },
+        { new: true }
+      );
+
+      if (updated) {
+        const roomId = (convId || updated.conversationId).toString();
+        io.to(roomId).emit('message:delivered', {
+          messageId: updated._id.toString(),
+          conversationId: roomId,
+          userId,
+          status: 'delivered'
+        });
+      }
+    } catch (err) {
+      console.error('[Socket] message:delivered error:', err.message);
+    }
+  };
+  socket.on('message:delivered', handleDelivered);
+  socket.on('message_delivered', handleDelivered);
+
+  // 6. Đánh dấu đã xem (Read Receipt ACK)
+  const handleSeen = async (data, callback) => {
+    try {
+      const convId = data?.conversationId || data;
+      if (!convId) return;
+      const conversation = await getConversation(convId);
       const seenAt = new Date();
 
       await Message.updateMany(
-        { conversationId: conversation._id, isRecall: false },
-        { $addToSet: { readBy: { user: userId, readAt: seenAt } } }
+        { conversationId: conversation._id, sender: { $ne: userId }, isRecall: false },
+        {
+          $set: { status: 'seen' },
+          $addToSet: { readBy: { user: userId, readAt: seenAt } }
+        }
       );
 
       socket.to(conversation._id.toString()).emit('message:seen', {
         conversationId: conversation._id.toString(),
         userId,
-        seenAt
+        seenAt,
+        status: 'seen'
       });
 
       if (typeof callback === 'function') callback({ success: true });
     } catch (error) {
       if (typeof callback === 'function') callback({ success: false, message: error.message });
     }
-  });
+  };
+  socket.on('message:seen', handleSeen);
+  socket.on('mark_seen', handleSeen);
 
   // 7. Đang nhập / dừng nhập
   socket.on('typing:start', (data) => {
@@ -150,6 +191,109 @@ const initChatSocket = (io, socket) => {
       userId
     });
   });
+
+  // 8. Thả cảm xúc tin nhắn (Reactions)
+  const handleReact = async (data, callback) => {
+    try {
+      const messageId = data?.messageId || data?.id;
+      const emoji = data?.emoji;
+      if (!messageId || !emoji) return;
+
+      const msg = await Message.findById(messageId);
+      if (!msg) throw new Error('Tin nhắn không tồn tại');
+
+      if (!Array.isArray(msg.reactions)) msg.reactions = [];
+      const cleanEmoji = emoji.trim();
+      const existingIndex = msg.reactions.findIndex(
+        (r) => r.user.toString() === userId.toString()
+      );
+
+      if (existingIndex > -1) {
+        if (msg.reactions[existingIndex].emoji === cleanEmoji) {
+          msg.reactions.splice(existingIndex, 1);
+        } else {
+          msg.reactions[existingIndex].emoji = cleanEmoji;
+        }
+      } else {
+        msg.reactions.push({ user: userId, emoji: cleanEmoji });
+      }
+
+      await msg.save();
+
+      const payload = {
+        messageId: msg._id.toString(),
+        conversationId: msg.conversationId.toString(),
+        reactions: msg.reactions
+      };
+
+      io.to(msg.conversationId.toString()).emit('message:reaction', payload);
+      if (typeof callback === 'function') callback({ success: true, data: payload });
+    } catch (error) {
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
+    }
+  };
+  socket.on('message:react', handleReact);
+  socket.on('message_react', handleReact);
+
+  // 9. Ghim / Bỏ ghim tin nhắn
+  const handlePin = async (data, callback) => {
+    try {
+      const conversationId = data?.conversationId;
+      const messageId = data?.messageId; // null or id
+      if (!conversationId) return;
+
+      const conv = await Conversation.findById(conversationId);
+      if (!conv) throw new Error('Cuộc trò chuyện không tồn tại');
+      if (!conv.hasMember(userId)) throw new Error('Không có quyền ghim tin nhắn');
+
+      let pinnedMsg = null;
+      if (messageId) {
+        const msg = await Message.findOne({ _id: messageId, conversationId });
+        if (!msg) throw new Error('Tin nhắn không tồn tại');
+
+        if (conv.pinnedMessage) {
+          await Message.findByIdAndUpdate(conv.pinnedMessage, {
+            isPinned: false,
+            pinnedAt: null,
+            pinnedBy: null
+          });
+        }
+
+        msg.isPinned = true;
+        msg.pinnedAt = new Date();
+        msg.pinnedBy = userId;
+        await msg.save();
+
+        conv.pinnedMessage = msg._id;
+        await conv.save();
+
+        const populated = await Message.findById(msg._id).populate('sender', '_id username displayName avatar');
+        pinnedMsg = populated.toClientJSON ? populated.toClientJSON() : populated;
+      } else {
+        if (conv.pinnedMessage) {
+          await Message.findByIdAndUpdate(conv.pinnedMessage, {
+            isPinned: false,
+            pinnedAt: null,
+            pinnedBy: null
+          });
+        }
+        conv.pinnedMessage = null;
+        await conv.save();
+      }
+
+      const payload = {
+        conversationId: conversationId.toString(),
+        pinnedMessage: pinnedMsg
+      };
+
+      io.to(conversationId.toString()).emit('conversation:pinned', payload);
+      if (typeof callback === 'function') callback({ success: true, data: payload });
+    } catch (error) {
+      if (typeof callback === 'function') callback({ success: false, message: error.message });
+    }
+  };
+  socket.on('message:pin', handlePin);
+  socket.on('pin_message', handlePin);
 };
 
 module.exports = initChatSocket;

@@ -185,9 +185,64 @@ const getMe = async (req, res) => {
   }
 };
 
+/**
+ * @route   POST /api/auth/change-password
+ * @desc    Đổi mật khẩu tài khoản
+ * @access  Private
+ */
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới.'
+      });
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu mới phải có ít nhất 6 ký tự.'
+      });
+    }
+
+    const userId = req.user._id || req.user.id;
+    const user = await User.findById(userId).select('+password +passwordHash');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản người dùng.'
+      });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu hiện tại không chính xác.'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Đổi mật khẩu thành công.'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi đổi mật khẩu: ' + error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
+  changePassword,
   issueToken
 };

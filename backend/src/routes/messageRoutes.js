@@ -5,7 +5,9 @@ const {
   sendMessage,
   editMessage,
   recallMessage,
-  searchMessages
+  markMessagesSeen,
+  searchMessages,
+  reactMessage
 } = require('../controllers/messageController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -21,8 +23,14 @@ router.post('/', sendMessage);
 // Get conversation messages by conversationId
 router.get('/:conversationId', getMessages);
 
+// Mark conversation messages as seen
+router.patch('/:conversationId/seen', markMessagesSeen);
+
 // Edit message by message id
 router.patch('/:id', editMessage);
+
+// React to message by message id
+router.patch('/:id/react', reactMessage);
 
 // Soft recall message by message id
 router.delete('/:id', recallMessage);

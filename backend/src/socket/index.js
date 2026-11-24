@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const socketAuth = require('./authSocket');
 const { registerPresence } = require('./presenceSocket');
 const initChatSocket = require('./chatSocket');
+const initCallSocket = require('./callSocket');
 const Conversation = require('../models/Conversation');
 
 // Khởi tạo Socket.IO và gắn các module xử lý
@@ -35,6 +36,9 @@ const initSocketIO = (server) => {
 
     // Bước 4: các sự kiện chat
     initChatSocket(io, socket);
+
+    // Bước 4.1: các sự kiện WebRTC Video/Audio Call 1-1
+    initCallSocket(io, socket);
 
     // Bước 4.1: sự kiện typing tương thích giao diện Son
     socket.on('typing', (payload) => {

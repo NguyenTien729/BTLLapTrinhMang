@@ -39,8 +39,13 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
+      default: ''
+    },
+    studentId: {
+      type: String,
+      trim: true,
       default: '',
-      maxlength: [2048, 'Avatar URL quá dài']
+      maxlength: [50, 'Mã sinh viên tối đa 50 ký tự']
     },
     bio: {
       type: String,
@@ -84,6 +89,8 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 // Omit password and passwordHash when converting to JSON
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
+  obj.id = obj._id ? obj._id.toString() : obj.id;
+  obj.name = obj.displayName || obj.username;
   delete obj.password;
   delete obj.passwordHash;
   delete obj.__v;

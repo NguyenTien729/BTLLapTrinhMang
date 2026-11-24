@@ -42,7 +42,7 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'file'],
+      enum: ['text', 'image', 'file', 'system'],
       default: 'text'
     },
     text: {
@@ -79,6 +79,23 @@ const messageSchema = new mongoose.Schema(
       default: null,
       index: true
     },
+    status: {
+      type: String,
+      enum: ['sent', 'delivered', 'seen'],
+      default: 'sent'
+    },
+    deliveredTo: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        deliveredAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
     readBy: [
       {
         user: {
@@ -90,7 +107,34 @@ const messageSchema = new mongoose.Schema(
           default: Date.now
         }
       }
-    ]
+    ],
+    reactions: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true
+        },
+        emoji: {
+          type: String,
+          required: true
+        }
+      }
+    ],
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    pinnedAt: {
+      type: Date,
+      default: null
+    },
+    pinnedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    }
   },
   {
     timestamps: true

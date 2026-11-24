@@ -12,6 +12,12 @@ const conversationSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: [500, 'Mô tả nhóm tối đa 500 ký tự']
+    },
     avatar: {
       type: String,
       default: ''
@@ -35,6 +41,11 @@ const conversationSchema = new mongoose.Schema(
     lastMessageAt: {
       type: Date,
       default: Date.now
+    },
+    pinnedMessage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+      default: null
     }
   },
   {
