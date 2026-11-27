@@ -6,22 +6,32 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+<<<<<<< HEAD
     "preview": "vite preview",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
+=======
+    "preview": "vite preview"
+  },
+  "dependencies": {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@tailwindcss/vite": "^4.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "esbuild": "^0.25.12",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.5",
+=======
+    "@vitejs/plugin-react": "^4.7.0",
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
     "vite": "^6.4.1"
   }
 }

@@ -1,9 +1,11 @@
 {
   "name": "ptitchat-backend",
   "version": "1.0.0",
-  "private": true,
+  "description": "PTITChat - Realtime Chat Application Backend (Node.js, Express, MongoDB, Socket.IO)",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
+<<<<<<< HEAD
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.js test/*.test.mjs",
     "seed": "node src/seeds/seedData.js",
@@ -12,21 +14,44 @@
     "server": "node server.js",
     "server:legacy": "node demo-server/index.js",
     "test:all": "node --test test/*.test.js test/*.test.mjs src/tests/socket.test.js"
+=======
+    "dev": "nodemon server.js",
+    "seed": "node src/seeds/seedData.js",
+    "test": "node --test src/tests/*.test.js"
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   },
+  "keywords": [
+    "chat",
+    "socket.io",
+    "realtime",
+    "ptitchat",
+    "mongodb",
+    "express"
+  ],
+  "author": "PTITChat Team",
+  "license": "ISC",
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^17.4.2",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.2.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+<<<<<<< HEAD
     "mongoose": "^8.24.8",
+=======
+    "mongoose": "^8.9.2",
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
     "multer": "^1.4.5-lts.1",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "mongodb-memory-server": "^10.4.3",
     "socket.io-client": "^4.8.1",
     "supertest": "^7.1.4"
+=======
+    "nodemon": "^3.1.9",
+    "socket.io-client": "^4.8.4"
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   }
 }

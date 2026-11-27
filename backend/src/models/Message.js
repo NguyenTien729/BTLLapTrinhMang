@@ -99,9 +99,12 @@ const messageSchema = new mongoose.Schema(
 
 // Compound index for querying chat history with pagination
 messageSchema.index({ conversationId: 1, createdAt: -1 });
+<<<<<<< HEAD
 messageSchema.index({ conversationId: 1, sender: 1, clientTempId: 1 }, {
   unique: true, partialFilterExpression: { clientTempId: { $type: 'string' } },
 });
+=======
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 
 // Text index for search
 messageSchema.index({ text: 'text' });
@@ -115,7 +118,10 @@ messageSchema.methods.toClientJSON = function () {
     obj.text = 'Tin nhắn đã bị thu hồi';
     obj.attachments = [];
   }
+<<<<<<< HEAD
   if (obj.replyTo?.isRecall) obj.replyTo.text = 'Tin nhắn đã bị thu hồi';
+=======
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   return obj;
 };
 

@@ -12,7 +12,10 @@ const conversationSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+<<<<<<< HEAD
     description: { type: String, default: '', maxlength: 240 },
+=======
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
     avatar: {
       type: String,
       default: ''

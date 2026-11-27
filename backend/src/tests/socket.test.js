@@ -1,12 +1,19 @@
+<<<<<<< HEAD
 // Test cho module Socket.IO.
 // Chạy: npm run test:socket (MongoDB tạm, không dùng database ứng dụng).
+=======
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const mongoose = require('mongoose');
+<<<<<<< HEAD
 const {startDatabase,stopDatabase}=require('../../test/helpers/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+=======
+const jwt = require('jsonwebtoken');
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 
 const app = require('../app');
 const initSocketIO = require('../socket');
@@ -15,7 +22,12 @@ const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 
+<<<<<<< HEAD
 const PORT = 0;
+=======
+const PORT = 5077;
+const DB = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ptitchat_socket_test';
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 
 let server;
 let io;
@@ -51,6 +63,7 @@ const once = (socket, event) =>
     });
   });
 
+<<<<<<< HEAD
 const token = (user) => jwt.sign({}, process.env.JWT_SECRET, { subject:user.id,expiresIn:'1h',issuer:'ptitchat',audience:'ptitchat-client' });
 
 const makeUser = async (name) =>
@@ -58,6 +71,15 @@ const makeUser = async (name) =>
     username: name,
     email: `${name}@ptit.edu.vn`,
     passwordHash: await bcrypt.hash('password123', 4),
+=======
+const token = (user) => jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+const makeUser = (name) =>
+  User.create({
+    username: name,
+    email: `${name}@ptit.edu.vn`,
+    password: 'password123',
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
     displayName: name.toUpperCase()
   });
 
@@ -65,8 +87,14 @@ test.before(async () => {
   process.env.JWT_SECRET = 'ptitchat_test_secret_key_2026_ptit_telecom';
   process.env.CLIENT_URL = 'http://localhost:5173';
 
+<<<<<<< HEAD
   await startDatabase();
   await Promise.all([User.init(),Conversation.init(),Message.init()]);
+=======
+  if (mongoose.connection.readyState !== 1) {
+    await mongoose.connect(DB, { serverSelectionTimeoutMS: 4000 });
+  }
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   await Promise.all([User.deleteMany({}), Conversation.deleteMany({}), Message.deleteMany({})]);
   resetPresence();
 
@@ -76,13 +104,23 @@ test.before(async () => {
   server = http.createServer(app);
   io = initSocketIO(server);
   await new Promise((resolve) => server.listen(PORT, resolve));
+<<<<<<< HEAD
   baseUrl = `http://127.0.0.1:${server.address().port}`;
+=======
+  baseUrl = `http://127.0.0.1:${PORT}`;
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 });
 
 test.after(async () => {
   if (io) await new Promise((resolve) => io.close(resolve));
   if (server?.listening) await new Promise((resolve) => server.close(resolve));
+<<<<<<< HEAD
   await stopDatabase();
+=======
+  try {
+    await mongoose.disconnect();
+  } catch (e) {}
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 });
 
 // 1. Xác thực bằng JWT
@@ -96,14 +134,22 @@ test('2. Chặn token sai chữ ký', async () => {
   await assert.rejects(connect(bad), /không hợp lệ/);
 });
 
+<<<<<<< HEAD
 test('3. Cho kết nối khi token hợp lệ (JWT sub theo contract)', async () => {
+=======
+test('3. Cho kết nối khi token hợp lệ (cả payload {id} và {sub})', async () => {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   const user = await makeUser('authtwo');
 
   const s1 = await connect(token(user));
   assert.ok(s1.connected);
   s1.close();
 
+<<<<<<< HEAD
   const subToken = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn:'1h',issuer:'ptitchat',audience:'ptitchat-client' });
+=======
+  const subToken = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   const s2 = await connect(subToken);
   assert.ok(s2.connected);
   s2.close();
@@ -142,17 +188,26 @@ test('5. Gửi tin 1-1 tới người nhận realtime', async () => {
   assert.strictEqual(ack.success, true);
   const msg = await incoming;
   assert.strictEqual(msg.text, 'Chào B');
+<<<<<<< HEAD
   assert.strictEqual(String(msg.sender._id), a.id);
 
   const saved = await Message.findById(msg._id);
   assert.ok(saved, 'tin nhắn phải được lưu vào DB');
+=======
+  assert.strictEqual(msg.sender._id.toString(), a.id);
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 
   sa.close();
   sb.close();
 });
 
+<<<<<<< HEAD
 // 4. Gửi tin nhắn nhóm
 test('6. Gửi tin nhóm: mọi thành viên trong phòng đều nhận', async () => {
+=======
+// 4. Nhóm chat
+test('6. Gửi tin vào nhóm chat: tất cả thành viên trong phòng nhận được', async () => {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   const [a, b, c] = await Promise.all([makeUser('gone'), makeUser('gtwo'), makeUser('gthree')]);
   const group = await Conversation.create({
     type: 'group',
@@ -164,6 +219,7 @@ test('6. Gửi tin nhóm: mọi thành viên trong phòng đều nhận', async 
   const sa = await connect(token(a));
   const sb = await connect(token(b));
   const sc = await connect(token(c));
+<<<<<<< HEAD
   for (const s of [sa, sb, sc]) {
     await emit(s, 'conversation:join', { conversationId: group.id });
   }
@@ -174,12 +230,32 @@ test('6. Gửi tin nhóm: mọi thành viên trong phòng đều nhận', async 
 
   assert.strictEqual((await pb).text, 'Họp nhóm');
   assert.strictEqual((await pc).text, 'Họp nhóm');
+=======
+
+  await emit(sa, 'conversation:join', { conversationId: group.id });
+  await emit(sb, 'conversation:join', { conversationId: group.id });
+  await emit(sc, 'conversation:join', { conversationId: group.id });
+
+  const inB = once(sb, 'message:new');
+  const inC = once(sc, 'message:new');
+
+  await emit(sa, 'message:send', {
+    conversationId: group.id,
+    text: 'Tin nhóm',
+    clientTempId: 'grp-1'
+  });
+
+  const [mb, mc] = await Promise.all([inB, inC]);
+  assert.strictEqual(mb.text, 'Tin nhóm');
+  assert.strictEqual(mc.text, 'Tin nhóm');
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 
   sa.close();
   sb.close();
   sc.close();
 });
 
+<<<<<<< HEAD
 // 5. Thông báo tin nhắn mới
 test('7. notification:new gửi cho người nhận, không gửi cho người gửi', async () => {
   const [a, b] = await Promise.all([makeUser('ntone'), makeUser('nttwo')]);
@@ -286,6 +362,10 @@ test('10. Đánh dấu đã xem và phát message:seen', async () => {
 
 // 8. Sửa, thu hồi, trả lời
 test('11. Sửa tin nhắn của mình, không sửa được tin người khác', async () => {
+=======
+// 5. Thao tác tin nhắn: sửa & thu hồi
+test('7. Sửa tin nhắn của mình phát event message:edited', async () => {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   const [a, b] = await Promise.all([makeUser('edone'), makeUser('edtwo')]);
   const conv = await Conversation.create({ type: 'direct', members: [a._id, b._id] });
 
@@ -295,6 +375,7 @@ test('11. Sửa tin nhắn của mình, không sửa được tin người khác
   await emit(sb, 'conversation:join', { conversationId: conv.id });
 
   const incoming = once(sb, 'message:new');
+<<<<<<< HEAD
   await emit(sa, 'message:send', { conversationId: conv.id, text: 'Nội dung cũ' });
   const msg = await incoming;
 
@@ -309,11 +390,27 @@ test('11. Sửa tin nhắn của mình, không sửa được tin người khác
   const denied = await emit(sb, 'message:edit', { messageId: msg._id, text: 'Sửa trộm' });
   assert.strictEqual(denied.success, false);
 
+=======
+  await emit(sa, 'message:send', { conversationId: conv.id, text: 'Tin gốc' });
+  const msg = await incoming;
+
+  const editedEvent = once(sb, 'message:edited');
+  await emit(sa, 'message:edit', { messageId: msg._id, text: 'Tin đã sửa' });
+  const edited = await editedEvent;
+
+  assert.strictEqual(edited.text, 'Tin đã sửa');
+  assert.strictEqual(edited.isEdited, true);
+
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   sa.close();
   sb.close();
 });
 
+<<<<<<< HEAD
 test('12. Thu hồi tin nhắn: ẩn nội dung nhưng vẫn giữ trong DB', async () => {
+=======
+test('8. Thu hồi tin nhắn: ẩn nội dung nhưng vẫn giữ trong DB', async () => {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   const [a, b] = await Promise.all([makeUser('rvone'), makeUser('rvtwo')]);
   const conv = await Conversation.create({ type: 'direct', members: [a._id, b._id] });
 
@@ -340,6 +437,7 @@ test('12. Thu hồi tin nhắn: ẩn nội dung nhưng vẫn giữ trong DB', as
   sb.close();
 });
 
+<<<<<<< HEAD
 test('13. Trả lời tin nhắn: replyTo được lưu và populate', async () => {
   const [a, b] = await Promise.all([makeUser('rpone'), makeUser('rptwo')]);
   const conv = await Conversation.create({ type: 'direct', members: [a._id, b._id] });
@@ -394,6 +492,9 @@ test('14. Typing:start và typing:stop được phát cho người khác', async
 
 // 10. Chống trùng khi gửi lại
 test('15. Gửi lại cùng clientTempId không tạo tin nhắn trùng', async () => {
+=======
+test('9. Gửi lại cùng clientTempId không tạo tin nhắn trùng', async () => {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   const [a, b] = await Promise.all([makeUser('ddone'), makeUser('ddtwo')]);
   const conv = await Conversation.create({ type: 'direct', members: [a._id, b._id] });
 
@@ -422,6 +523,7 @@ test('15. Gửi lại cùng clientTempId không tạo tin nhắn trùng', async 
   sa.close();
   sb.close();
 });
+<<<<<<< HEAD
 
 // 11. Reconnect
 test('16. Kết nối lại và vẫn gửi/nhận được tin nhắn', async () => {
@@ -446,3 +548,5 @@ test('16. Kết nối lại và vẫn gửi/nhận được tin nhắn', async (
   sa2.close();
   sb.close();
 });
+=======
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034

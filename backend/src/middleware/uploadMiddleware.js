@@ -31,7 +31,11 @@ const ALLOWED_IMAGE_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
+<<<<<<< HEAD
   'image/bmp'
+=======
+  'image/svg+xml'
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
 ];
 
 const ALLOWED_FILE_TYPES = [
@@ -51,7 +55,11 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 const ALLOWED_EXTENSIONS = [
+<<<<<<< HEAD
   '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
+=======
+  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
   '.txt', '.zip', '.rar', '.7z'
 ];
@@ -62,7 +70,11 @@ const fileFilter = (req, file, cb) => {
   const isExtAllowed = ALLOWED_EXTENSIONS.includes(ext);
   const isMimeAllowed = ALLOWED_FILE_TYPES.includes(file.mimetype);
 
+<<<<<<< HEAD
   if (isExtAllowed && isMimeAllowed) {
+=======
+  if (isExtAllowed || isMimeAllowed) {
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
     cb(null, true);
   } else {
     cb(
@@ -81,8 +93,12 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const upload = multer({
   storage,
   limits: {
+<<<<<<< HEAD
     fileSize: MAX_FILE_SIZE,
     files: 10
+=======
+    fileSize: MAX_FILE_SIZE
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
   },
   fileFilter
 });

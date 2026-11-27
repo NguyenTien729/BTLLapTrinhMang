@@ -1,10 +1,23 @@
 node_modules/
-.env
-.env.*
-!.env.example
-dist/
-coverage/
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.npm-cache/
 .npm-cache/
+<<<<<<< HEAD
 .mongodb-binaries/
 backend/uploads/
 frontend/src/.App.test-tmp.mjs
+=======
+ptitchat/node_modules/
+ptitchat/dist/
+backend/uploads/*
+!backend/uploads/.gitkeep
+data/
+.env
+backend/.env
+.DS_Store
+Thumbs.db
+
+
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034

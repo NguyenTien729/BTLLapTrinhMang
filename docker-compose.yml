@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 services:
   mongodb:
     image: mongo:6.0
@@ -46,3 +47,23 @@ services:
 volumes:
   mongo_data:
   uploads:
+=======
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: ptitchat-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ptitchat
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
+    driver: local
+
+>>>>>>> 5e92e1bc351b7c2b8b675b3eb00ae45c91e81034
