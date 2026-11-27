@@ -19,6 +19,7 @@ exports.register = async (req, res) => {
   if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: 'Email đã được sử dụng.' });
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await User.create({ username: username.trim(), email: normalizedEmail, passwordHash });
+  req.app.get('io')?.emit('user:new', user.toJSON());
   res.status(201).json({ token: issueToken(user), user });
 };
 
@@ -35,3 +36,5 @@ exports.login = async (req, res) => {
   await user.save();
   res.json({ token: issueToken(user), user });
 };
+
+exports.getMe = (req, res) => res.json({ success: true, data: req.user });

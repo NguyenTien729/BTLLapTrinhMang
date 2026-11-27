@@ -1,0 +1,8 @@
+node_modules
+.npm-cache
+.env
+.env.*
+uploads
+test
+src/tests
+demo-server

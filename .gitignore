@@ -5,3 +5,6 @@ node_modules/
 dist/
 coverage/
 .npm-cache/
+.mongodb-binaries/
+backend/uploads/
+frontend/src/.App.test-tmp.mjs
